@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Streamlit
+.streamlit/
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Environment files
+.env
+
+# Node / npm
+node_modules/
+
+# Editors
+.vscode/
+.idea/
+
+# Build artifacts
+build/
+dist/
