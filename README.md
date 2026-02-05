@@ -1,64 +1,64 @@
-
 # AI-Powered Chat Orchestrator
 
-Simple Streamlit app that chats with Groq and sends a short summary to n8n on demand.
+Streamlit app that chats with Groq, optionally summarizes the conversation, and sends that summary to n8n via webhook.
 
-## Features
-- Groq chat via API key
-- Summary-on-demand
-- User-triggered email automation with n8n webhook
-- Works locally
+## Architecture Diagram
 
-## Setup
+```mermaid
+flowchart TD
+		A[User] -->|Chat input| B[Streamlit UI\napp.py]
+		B -->|Chat request| C[Groq API\nservices/groq_client.py]
+		C -->|Model response| B
+		B -->|Summarize & Send| D[Summary builder\napp.py]
+		D -->|POST JSON {message}| E[n8n Webhook\nservices/n8n_client.py]
+		E -->|Automation (Email, etc.)| F[Downstream actions]
 
-https://docs.n8n.io/integrations/creating-nodes/test/run-node-locally/
-n8n start
+		B -->|Optional doc context| G[Document Loader\nutils/doc_loader.py]
+		G --> B
+```
 
-### 1) Install dependencies
+## Code Explanation
+
+### Entry Points
+- `app.py`: Streamlit UI, chat flow orchestration, summary creation, and webhook submission.
+- `main.py`: Alternate entry or helper wrapper (if used) for running the app or shared orchestration.
+
+### Services
+- `services/groq_client.py`: Thin client for Groq chat completions. Responsible for API calls and model selection via env vars.
+- `services/n8n_client.py`: HTTP client to post summary payloads to the configured n8n webhook.
+- `services/gemini_client.py`: Optional/alternative LLM client (if configured).
+
+### Utilities
+- `utils/doc_loader.py`: Loads local documents to provide extra context for responses.
+
+### Data Flow
+1. User enters a prompt in Streamlit.
+2. UI sends the request to Groq via `groq_client`.
+3. Response is rendered in the chat UI.
+4. When user clicks **Summarize & Send**, the app builds a short summary.
+5. The summary is sent to n8n via `n8n_client` as JSON: `{ "message": "..." }`.
+
+## Environment Variables
+- `GROQ_API_KEY`: Groq API key.
+- `GROQ_MODEL`: Groq model name (default in code if not set).
+- `N8N_WEBHOOK_URL`: n8n webhook URL.
+
+## Run Locally
 
 ```bash
 pip install -r requirements.txt
-```
-
-### 2) Set environment variables
-
-```bash
-export GROQ_API_KEY="your_api_key"
-export N8N_WEBHOOK_URL="http://localhost:5678/webhook/your-webhook-path"
-export GROQ_MODEL="openai/gpt-oss-120b"
-```
-
-### 3) Run the app
-
-```bash
 streamlit run app.py
 ```
 
 ## n8n Workflow (Local)
 
-### A) Create and test the workflow
-1) Create a new workflow and add a **Webhook** trigger (POST).
-2) Add an **Email** node and map the incoming JSON field:
-   - `message`
-3) Click **Execute workflow** on the canvas to enable the test webhook.
-4) In your `.env`, set:
+1. Create a workflow with **Webhook** (POST) trigger.
+2. Add an **Email** node (or any automation) and map `message` from incoming JSON.
+3. Click **Execute workflow** to enable the test webhook.
+4. Set `N8N_WEBHOOK_URL` to the test URL (uses `/webhook-test/`).
+5. In the app, click **Summarize & Send**.
 
-```bash
-N8N_WEBHOOK_URL="http://localhost:5678/webhook-test/your-path"
-```
-
-5) In the Streamlit app, click **Summarize & Send**.
-
-> In test mode, the webhook only works once after you click **Execute workflow**. Click it again for another test call.
-
-### B) Activate for production use
-1) Activate the workflow (toggle in n8n).
-2) Copy the production webhook URL (starts with `/webhook/`).
-3) Update `.env`:
-
-```bash
-N8N_WEBHOOK_URL="http://localhost:5678/webhook/your-path"
-```
+For production, activate the workflow and switch to the `/webhook/` URL.
 
 ## Payload Sent to n8n
 
